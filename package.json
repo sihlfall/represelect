@@ -32,6 +32,10 @@
   ],
   "author": "Johannes Becker",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sihlfall/represelect.git"
+  },
   "dependencies": {
     "reselect": "^4.1.6",
     "rxjs": "^7.5.6"
