@@ -1,6 +1,6 @@
 {
   "name": "represelect",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Reselect-like lazy selectors for asynchronous pure functions",
   "main": "./lib/index.js",
   "jsnext:main": "./es/index.js",
