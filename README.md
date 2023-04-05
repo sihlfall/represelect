@@ -44,15 +44,22 @@ depends on the values of its arguments.
 From this function, we _can_ create a memoizing selector using Reselect's `createSelector` function:
 
 ```js
-const selectSumPromise = createSelector(state => state.data.a, state => state.data.b, heavySum);
+const selectSumPromise = createSelector(
+  state => state.data.a, state => state.data.b,
+  heavySum
+);
 ```
 
 As the name indicates, this selector will return a `Promise`. Due to memoization, it will continue to
 return the same promise as long as the dependencies do not change:
 
 ```js
-const sumPromise1 = selectSumPromise({ data: { a: 5, b: 7 }, otherData: { c: 10 } });
-const sumPromise2 = selectSumPromise({ data: { a: 5, b: 7 }, otherData: { c: 11 } });
+const sumPromise1 = selectSumPromise({
+  data: { a: 5, b: 7 }, otherData: { c: 10 }
+});
+const sumPromise2 = selectSumPromise({
+  data: { a: 5, b: 7 }, otherData: { c: 11 }
+});
 assert.ok(sumPromise1 === sumPromise2);
 ```
 
@@ -77,7 +84,10 @@ since the dependency delivers a promise, yet the dependent function expects a va
 
 ```js
 // wrong
-const selectTwiceTheSumPromise = createSelector(selectSumPromise, x => x * 2);
+const selectTwiceTheSumPromise = createSelector(
+  selectSumPromise,
+  x => x * 2
+);
 ```
 
 Represelectors are designed to mitigate these issues.
@@ -101,13 +111,18 @@ import assert from 'assert';
 Creating a represelector is similar to creating a selector:
 
 ```js
-const represelectSum = createRepreselector(state => state.data.a, state => state.data.b, heavySum);
+const represelectSum = createRepreselector(
+  state => state.data.a, state => state.data.b,
+  heavySum
+);
 ```
 
 When called, a represelector will return a `Representative`:
 
 ```js
-const sumRepresentative1 = represelectSum({ data: { a: 5, b: 7 }, otherData: { c: 10 } });
+const sumRepresentative1 = represelectSum({
+  data: { a: 5, b: 7 }, otherData: { c: 10 }
+});
 assert.ok(sumRepresentative1 instanceof Representative);
 ```
 
@@ -120,7 +135,9 @@ A represelector will memoize the representative and, as long as the dependencies
 same (identical) representative on subsequent calls:
 
 ```js
-const sumRepresentative2 = represelectSum({ data: { a: 5, b: 7 }, otherData: { c: 11 } });
+const sumRepresentative2 = represelectSum({
+  data: { a: 5, b: 7 }, otherData: { c: 11 }
+});
 assert.ok(sumRepresentative1 === sumRepresentative2);
 ```
 
@@ -161,7 +178,10 @@ Represelectors can be created from synchronous functions as well:
 
 ```js
 const lightSum = (a, b) => a + b;
-const represelectLightSum = createRepreselector(state => state.data.a, state => state.data.b, lightSum);
+const represelectLightSum = createRepreselector(
+  state => state.data.a, state => state.data.b,
+  lightSum
+);
 ```
 
 The behaviour in the synchronous case will be almost identical to the asynchronous case.
@@ -169,8 +189,13 @@ As long as all dependencies are synchronous, however, subscription to
 `value$` will _always_ result in a synchronous emission of the function result:
 
 ```js
-const lightSumRepresentative = represelectLightSum({ data: { a: 5, b: 7 }, otherData: { c: 10 } });
-assert.deepStrictEqual(lightSumRepresentative.disclose(), { status: INACTIVE });
+const lightSumRepresentative = represelectLightSum({
+  data: { a: 5, b: 7 }, otherData: { c: 10 }
+});
+assert.deepStrictEqual(
+  lightSumRepresentative.disclose(),
+  { status: INACTIVE }
+);
 
 // logging will always take place synchronously, since lightSum is a synchronous function
 //   and all dependencies are synchronous
@@ -189,7 +214,9 @@ const represelectTwiceTheSum = createRepreselector(represelectSum, x => x * 2);
 You can use such represelectors like any other represelector:
 
 ```js
-const twiceTheSumRepresentative = represelectTwiceTheSum({ data: { a: 5, b: 7 }, otherData: { c: 10} });
+const twiceTheSumRepresentative = represelectTwiceTheSum({
+  data: { a: 5, b: 7 }, otherData: { c: 10}
+});
 twiceTheSumRepresentative.value$.subscribe({ next(v) { console.log(v); } });
 ```
 
@@ -237,7 +264,8 @@ As said, memoization is done on three levels:
   evaluate the dependencies again and delivers the memoized result representative.
 
   ```js
-  const { represelectSum, represelectTwiceTheSum, consoleLogger } = setupMemoizationExample();
+  const { represelectSum, represelectTwiceTheSum, consoleLogger } =
+    setupMemoizationExample();
 
   const exampleState = { data: { a: 5, b: 7 }, otherData: { c: 10} };
 
@@ -252,7 +280,8 @@ As said, memoization is done on three levels:
   // Adding a = 5 and b = 7.
   // Observed value 12.
 
-  // Neither the dependencies nor the selector functions will be evaluated again.
+  // Neither the dependencies nor the selector functions will be evaluated
+  //   again.
   // The represelector will just return the memoized result representative.
   const r2 = represelectSum(exampleState);
   // No output.
@@ -268,7 +297,8 @@ As said, memoization is done on three levels:
   function have not changed, the represelector will again return the memoized representative:
 
   ```js
-  const { represelectSum, represelectTwiceTheSum, consoleLogger } = setupMemoizationExample();
+  const { represelectSum, represelectTwiceTheSum, consoleLogger } =
+    setupMemoizationExample();
 
   const r1 = represelectSum({ data: { a: 5, b: 7 }, otherData: { c: 10} });
   // Output:
@@ -280,10 +310,10 @@ As said, memoization is done on three levels:
   // Adding a = 5 and b = 7.
   // Observed value 12.
 
-  // The dependencies will be evaluated, because the argument to the selector is not
-  //   identical, yet since the values of a and b have not changed, the memoized
-  //   result representative will be returned. As a consequence, the sum will
-  //   not be calculated again.
+  // The dependencies will be evaluated, because the argument to the selector
+  //   is not identical, yet since the values of a and b have not changed,
+  //   the memoized result representative will be returned. As a consequence,
+  //   the sum will not be calculated again.
   const r2 = represelectSum({ data: { a: 5, b: 7 }, otherData: { c: 11} });
   // Output:
   // Getting state.data.a = 5.
@@ -308,7 +338,8 @@ As said, memoization is done on three levels:
   // Getting state.data.a = 5.
   // Getting state.data.b = 7.
 
-  // On subscription to value$, both the sum of a and b as well as the doubling will take place.
+  // On subscription to value$, both the sum of a and b as well as the
+  //   doubling will take place.
   r1.value$.subscribe(consoleLogger);
   // Output:
   // Adding a = 5 and b = 7.
@@ -323,8 +354,8 @@ As said, memoization is done on three levels:
 
   assert.ok(r1 !== r2);
 
-  // On subscription to value$, the sum will be calculated again, but since its value is the same
-  //   as before, doubling will not take place again.
+  // On subscription to value$, the sum will be calculated again, but since
+  //   its value is the same as before, doubling will not take place again.
   r2.value$.subscribe(consoleLogger);
   // Output:
   // Adding a = 6 and b = 6.
