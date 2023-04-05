@@ -333,7 +333,9 @@ As said, memoization is done on three levels:
   ```js
   const { represelectSum, represelectTwiceTheSum, consoleLogger } = setupMemoizationExample();
 
-  const r1 = represelectTwiceTheSum({ data: { a: 5, b: 7 }, otherData: { c: 10} });
+  const r1 = represelectTwiceTheSum({
+    data: { a: 5, b: 7 }, otherData: { c: 10}
+  });
   // Output:
   // Getting state.data.a = 5.
   // Getting state.data.b = 7.
@@ -347,7 +349,9 @@ As said, memoization is done on three levels:
   // Observed value 24.
 
   // r2 will be distinct from r1, since the dependencies have changed.
-  const r2 = represelectTwiceTheSum({ data: { a: 6, b: 6 }, otherData: { c: 10} });
+  const r2 = represelectTwiceTheSum({
+    data: { a: 6, b: 6 }, otherData: { c: 10}
+  });
   // Output:
   // Getting state.data.a = 6.
   // Getting state.data.b = 6.
