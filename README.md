@@ -197,7 +197,8 @@ assert.deepStrictEqual(
   { status: INACTIVE }
 );
 
-// logging will always take place synchronously, since lightSum is a synchronous function
+// logging will always take place synchronously, since lightSum
+//   is a synchronous function
 //   and all dependencies are synchronous
 lightSumRepresentative.value$.subscribe({ next(v) { console.log(v); } });
 ```
