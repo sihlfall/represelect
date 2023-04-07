@@ -9,7 +9,7 @@ export function assertStatus<
   expectedStatus: Expected & (typeof INACTIVE | typeof BUSY | typeof SUCCESS | typeof ERROR)
 ):
 asserts r is T & { status: Expected & (typeof INACTIVE | typeof BUSY | typeof SUCCESS | typeof ERROR) } {
-  assert.ok (r.status === expectedStatus);
+  assert.deepStrictEqual(r.status, expectedStatus);
 }
 
 export function assertSuccess<Value>(

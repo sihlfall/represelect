@@ -1,4 +1,4 @@
-import { BehaviorSubject, Observable, shareReplay, take, throwIfEmpty } from "rxjs";
+import { ReplaySubject, Observable, shareReplay, take, throwIfEmpty } from "rxjs";
 
 export const INACTIVE = 0 as const;
 export const BUSY = 1 as const;
@@ -54,8 +54,9 @@ export function isCompletedDisclosure<Value, Err> (
 
 export class Representative<Value, Err = unknown> {
 
-  private readonly _passive$: BehaviorSubject<Disclosure<Value>>;
+  private readonly _passive$: ReplaySubject<Disclosure<Value>>;
   private readonly _value$: Observable<Value>;
+  private _disclose: Disclosure<Value, Err>;
 
   constructor (
     trigger: (
@@ -63,16 +64,22 @@ export class Representative<Value, Err = unknown> {
       error: (e: Err) => void
     ) => void
   ) {
-    this._passive$ = new BehaviorSubject<Disclosure<Value>>(
-      makeInactiveDisclosure()
-    );
+    const _disclose = makeInactiveDisclosure();
+    this._disclose = _disclose;
+
+    const _passive$ = new ReplaySubject<Disclosure<Value>>(1);
+    _passive$.next(_disclose);
+    this._passive$ = _passive$;
 
     this._value$ = new Observable<Value> (
       subscriber => {
-        this._passive$.next(makeBusyDisclosure());
+        const busy = 
+        this._disclose = makeBusyDisclosure();
+        this._passive$.next(busy);
         trigger(
           v => {
             const d = makeSuccessDisclosure(v);
+            this._disclose = d;
             this._passive$.next(d);
             this._passive$.complete();
             subscriber.next(v);
@@ -80,6 +87,7 @@ export class Representative<Value, Err = unknown> {
           },
           e => {
             const d = makeErrorDisclosure(e);
+            this._disclose = d;
             this._passive$.next(d);
             this._passive$.complete();
             subscriber.error(e);
@@ -92,7 +100,7 @@ export class Representative<Value, Err = unknown> {
 
   }
 
-  disclose () { return this._passive$.getValue(); }
+  disclose () { return this._disclose; }
 
   get value$ (): Observable<Value> { return this._value$; }
 

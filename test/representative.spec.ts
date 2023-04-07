@@ -2,7 +2,7 @@ import assert from "assert";
 import { lastValueFrom } from "rxjs";
 import { 
    Disclosure, INACTIVE, makeBusyDisclosure, makeInactiveDisclosure, 
-   makeSuccessDisclosure, Representative
+   makeSuccessDisclosure, Representative, SUCCESS
 } from "../src/representative";
 import { assertSuccess } from "./assertDisclosure";
 import { counting } from "./callCount";
@@ -53,7 +53,7 @@ describe("Respresentative", function () {
     assert.deepStrictEqual(v, 42);
   });
 
-  it("distributes INACTIVE, BUSY, and SUCCESS via passive$", function () {
+  it("distributes INACTIVE, BUSY, and SUCCESS via disclose$", function () {
     let observed: Disclosure<number> [] = [];
     const f = counting(trigger);
     const repr = new Representative(f);
@@ -76,4 +76,14 @@ describe("Respresentative", function () {
       ]
     );
   });
+
+  it("emits SUCCESS on disclose$ even after completion", function () {
+    let observed: Disclosure<number> [] = [];
+    const f = counting(trigger);
+    const repr = new Representative(f);
+    repr.value$.subscribe();
+    assert.ok(repr.disclose().status === SUCCESS);
+    repr.disclose$.subscribe(d => observed.push(d));
+    assert.deepStrictEqual(observed, [ makeSuccessDisclosure(42) ]);
+  })
 });
