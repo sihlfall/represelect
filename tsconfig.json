@@ -10,6 +10,7 @@
     "sourceMap": true,
     "outDir": "./es",
     "forceConsistentCasingInFileNames": true,
+    "preserveConstEnums": true
   },
   "include": [ "./src/**/*" ]
 }

@@ -1,9 +1,8 @@
 import assert from "assert";
 import { createRepreselector } from "../src/createRepreselector";
-import { INACTIVE, SUCCESS, BUSY } from "../src/representative";
 import { lastValueFrom } from "rxjs";
-import { assertStatus } from "./assertDisclosure";
 import { Representative } from "../src/representative";
+import * as RepreselectAssert from "@sihlfall/represelect-assert";
 import { createSelector } from "reselect";
 import { countingFamily, counting } from "./callCount";
 
@@ -17,11 +16,11 @@ function runTestsTrivialDependency (f: (x: { val: number }) => number | Promise<
       const FORTYTWO = 42;
       const sel = createRepreselector(identity, f);
       const representative1 = sel({ val: FORTYTWO });
-      assertStatus(representative1.disclose(), INACTIVE);
+      RepreselectAssert.Disclosure.inactive(representative1.disclose());
       const res1 = await lastValueFrom(representative1.value$);
       assert.deepStrictEqual(res1, FORTYTWO);
       const disclosure2 = representative1.disclose();
-      assertStatus(disclosure2, SUCCESS);
+      RepreselectAssert.Disclosure.success(disclosure2);
       assert.deepStrictEqual(disclosure2.value, FORTYTWO);
     }
   );
@@ -38,7 +37,7 @@ function runTestsTrivialDependency (f: (x: { val: number }) => number | Promise<
       sel(a);
       assert.deepStrictEqual(ff.nCalls(), 0);
       const disclosure1 = representative1.disclose();
-      assertStatus(disclosure1, INACTIVE);
+      RepreselectAssert.Disclosure.inactive(disclosure1);
     }
   );
 
@@ -54,8 +53,8 @@ function runTestsTrivialDependency (f: (x: { val: number }) => number | Promise<
       assert.deepStrictEqual(ff.nCalls(), 1);
       const representative3 = sel(a);
       assert.deepStrictEqual(ff.nCalls(), 1);
-      assertStatus(representative2.disclose(), SUCCESS);
-      assertStatus(representative3.disclose(), SUCCESS);
+      RepreselectAssert.Disclosure.success(representative2.disclose());
+      RepreselectAssert.Disclosure.success(representative3.disclose());
       assert.ok(representative1 === representative2);
       assert.ok(representative1 === representative3);
     }
@@ -73,9 +72,9 @@ describe("createRepreselector (trivial dependency, one parameter, sync function)
     const ff = counting(f);
     const sel = createRepreselector(identity, ff);
     const representative1 = sel(a);
-    assertStatus(representative1.disclose(), INACTIVE);
+    RepreselectAssert.Disclosure.inactive(representative1.disclose());
     representative1.value$.subscribe();
-    assertStatus(representative1.disclose(), SUCCESS);
+    RepreselectAssert.Disclosure.success(representative1.disclose());
   });
 });
 
@@ -83,16 +82,16 @@ describe("createRepreselector (trivial dependency, one parameter, async function
   const f = async (x: { val: number }) => x.val;
   runTestsTrivialDependency (f);
 
-  it("delivers BUSY asynchronously", function () {
+  it("delivers PENDING asynchronously", function () {
     const identity = (x: { val: number}) => x;
     const FORTYTWO = 42;
     const a = { val: FORTYTWO };
     const ff = counting(f);
     const sel = createRepreselector(identity, ff);
     const representative1 = sel(a);
-    assertStatus(representative1.disclose(), INACTIVE);
+    RepreselectAssert.Disclosure.inactive(representative1.disclose());
     representative1.value$.subscribe();
-    assertStatus(representative1.disclose(), BUSY);
+    RepreselectAssert.Disclosure.pending(representative1.disclose());
   });
 
   it("delivers SUCCESS asynchronously", async function () {
@@ -102,9 +101,9 @@ describe("createRepreselector (trivial dependency, one parameter, async function
     const ff = counting(f);
     const sel = createRepreselector(identity, ff);
     const representative1 = sel(a);
-    assertStatus(representative1.disclose(), INACTIVE);
+    RepreselectAssert.Disclosure.inactive(representative1.disclose());
     await lastValueFrom(representative1.value$);
-    assertStatus(representative1.disclose(), SUCCESS);
+    RepreselectAssert.Disclosure.success(representative1.disclose());
   });
 });
 
@@ -117,7 +116,7 @@ describe("createRepreselector (one non-selector dependency, one parameter, sync 
     );
     const representative = selector(100);
     representative.value$.subscribe();
-    assert.deepStrictEqual(representative.disclose().status, SUCCESS);
+    RepreselectAssert.Disclosure.success(representative.disclose());
   });
 
   it("returns a representative representing the correct result value", async function () {
@@ -166,7 +165,7 @@ describe("createRepreselector (one non-selector dependency, one parameter, sync 
     assert.deepStrictEqual(f1.nCalls (), 0);
 
     const disclosure1 = representative1.disclose();
-    assertStatus(disclosure1, INACTIVE);
+    RepreselectAssert.Disclosure.inactive(disclosure1);
     assert.deepStrictEqual(d1.nCalls (), 0);
     assert.deepStrictEqual(f1.nCalls (), 0);
 
@@ -216,7 +215,7 @@ describe("createRepreselector (one non-selector dependency, one parameter, sync 
     assert.deepStrictEqual(fns.nCalls(), { d1: 1, f1: 0 });
 
     const disclosure1 = representative1.disclose();
-    assertStatus(disclosure1, INACTIVE);
+    RepreselectAssert.Disclosure.inactive(disclosure1);
     assert.deepStrictEqual(fns.nCalls(), { d1: 1, f1: 0 });
 
     const res1 = await lastValueFrom(representative1.value$);
@@ -294,7 +293,7 @@ describe("createRepreselector (one async representative dependency, one paramete
     assert.deepStrictEqual(fns.nCalls (), { d1: 1, e1: 0, f1: 0 });
 
     const disclosure1 = representative1.disclose();
-    assertStatus(disclosure1, INACTIVE);
+    RepreselectAssert.Disclosure.inactive(disclosure1);
     assert.deepStrictEqual(fns.nCalls (), { d1: 1, e1: 0, f1: 0 });
 
     const res1 = await lastValueFrom(representative1.value$);
@@ -303,7 +302,7 @@ describe("createRepreselector (one async representative dependency, one paramete
 
     const representative2 = fSel(7);
     const disclosure2 = representative2.disclose();
-    assertStatus(disclosure2, SUCCESS);
+    RepreselectAssert.Disclosure.success(disclosure2);
     assert.deepStrictEqual(disclosure2.value, 803);
     assert.deepStrictEqual(fns.nCalls (), { d1: 1, e1: 1, f1: 1 });
   });
@@ -323,7 +322,7 @@ describe("createRepreselector (one async representative dependency, one paramete
 
     const representative2 = fSel(7);
     const disclosure2 = representative2.disclose();
-    assertStatus(disclosure2, SUCCESS);
+    RepreselectAssert.Disclosure.success(disclosure2);
     assert.deepStrictEqual(disclosure2.value, 803);
     assert.deepStrictEqual(fns.nCalls (), { d1: 1, e1: 1, f1: 1 });
   });
@@ -344,7 +343,7 @@ describe("createRepreselector (one async representative dependency, one paramete
 
     const representative2 = fSel(9);
     const disclosure2 = representative2.disclose();
-    assertStatus(disclosure2, SUCCESS);
+    RepreselectAssert.Disclosure.success(disclosure2);
     assert.deepStrictEqual(disclosure2.value, 103);
     assert.deepStrictEqual(fns.nCalls (), { d1: 2, e1: 1, f1: 1 });
   });
@@ -366,9 +365,9 @@ describe("createRepreselector (two non-representative dependencies, one paramete
 
     const representative = f1Sel(5);
     representative.value$.subscribe();
-    const disclose = representative.disclose();
-    assertStatus(disclose, SUCCESS);
-    assert.deepStrictEqual(disclose.value, 5500);
+    const disclosure = representative.disclose();
+    RepreselectAssert.Disclosure.success(disclosure);
+    assert.deepStrictEqual(disclosure.value, 5500);
   });
 });  
 
@@ -386,8 +385,8 @@ describe("createRepreselector (two representative dependencies, one parameter, s
 
     const representative = f1Sel(5);
     representative.value$.subscribe();
-    const disclose = representative.disclose();
-    assertStatus(disclose, SUCCESS);
-    assert.deepStrictEqual(disclose.value, 5500);
+    const disclosure = representative.disclose();
+    RepreselectAssert.Disclosure.success(disclosure);
+    assert.deepStrictEqual(disclosure.value, 5500);
   });
 });  

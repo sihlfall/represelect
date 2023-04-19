@@ -1,84 +1,33 @@
 import { ReplaySubject, Observable, shareReplay, take, throwIfEmpty } from "rxjs";
+import * as Disclosure from './disclosure';
 
-export const INACTIVE = 0 as const;
-export const BUSY = 1 as const;
-export const SUCCESS = 2 as const;
-export const ERROR = 4 as const;
+export class Representative<Value> {
 
-export type InactiveDisclosure<Value, Err> = {
-  readonly status: typeof INACTIVE
-};
-export type BusyDisclosure<Value, Err = unknown> = {
-  readonly status: typeof BUSY
-};
-export type SuccessDisclosure<Value> = {
-  readonly status: typeof SUCCESS
-  readonly value: Value
-};
-export type ErrorDisclosure<Err = unknown> = {
-  readonly status: typeof ERROR
-  readonly reason: Err
-};
-export type CompletedDisclosure<Value, Err = unknown> = 
-  SuccessDisclosure<Value>
-  | ErrorDisclosure<Err>;
-export type Disclosure<Value, Err = unknown> =
-  InactiveDisclosure<Value, Err>
-  | BusyDisclosure<Value, Err>
-  | SuccessDisclosure<Value>
-  | ErrorDisclosure<Err>;
-
-export function makeInactiveDisclosure<Value, Err> (
-): InactiveDisclosure<Value, Err> {
-  return { status: INACTIVE };
-}
-export function makeBusyDisclosure<Value, Err> (
-): BusyDisclosure<Value, Err> {
-  return { status: BUSY };
-}
-export function makeSuccessDisclosure<Value> (
-  value: Value
-): SuccessDisclosure<Value> {
-  return { status: SUCCESS, value };
-}
-export function makeErrorDisclosure<Err> (
-  reason: Err
-): ErrorDisclosure<Err> {
-  return { status: ERROR, reason };
-}
-export function isCompletedDisclosure<Value, Err> (
-  disclosure: Disclosure<Value, Err>
-): disclosure is CompletedDisclosure<Value, Err> {
-  return disclosure.status === SUCCESS || disclosure.status === ERROR
-}
-
-export class Representative<Value, Err = unknown> {
-
-  private readonly _passive$: ReplaySubject<Disclosure<Value>>;
+  private readonly _passive$: ReplaySubject<Disclosure.Unspecified<Value>>;
   private readonly _value$: Observable<Value>;
-  private _disclose: Disclosure<Value, Err>;
+  private _disclose: Disclosure.Unspecified<Value>;
 
   constructor (
     trigger: (
       success: (v: Value) => void,
-      error: (e: Err) => void
+      error: (e: unknown) => void
     ) => void
   ) {
-    const _disclose = makeInactiveDisclosure();
+    const _disclose = Disclosure.inactive();
     this._disclose = _disclose;
 
-    const _passive$ = new ReplaySubject<Disclosure<Value>>(1);
+    const _passive$ = new ReplaySubject<Disclosure.Unspecified<Value>>(1);
     _passive$.next(_disclose);
     this._passive$ = _passive$;
 
     this._value$ = new Observable<Value> (
       subscriber => {
-        const busy = 
-        this._disclose = makeBusyDisclosure();
-        this._passive$.next(busy);
+        const PENDING = 
+        this._disclose = Disclosure.pending();
+        this._passive$.next(PENDING);
         trigger(
           v => {
-            const d = makeSuccessDisclosure(v);
+            const d = Disclosure.success(v);
             this._disclose = d;
             this._passive$.next(d);
             this._passive$.complete();
@@ -86,7 +35,7 @@ export class Representative<Value, Err = unknown> {
             subscriber.complete();
           },
           e => {
-            const d = makeErrorDisclosure(e);
+            const d = Disclosure.failure(e);
             this._disclose = d;
             this._passive$.next(d);
             this._passive$.complete();
@@ -104,7 +53,7 @@ export class Representative<Value, Err = unknown> {
 
   get value$ (): Observable<Value> { return this._value$; }
 
-  get disclose$ (): Observable<Disclosure<Value>> { return this._passive$; }
+  get disclose$ (): Observable<Disclosure.Unspecified<Value>> { return this._passive$; }
 
   static fromFunction<Result> (f: () => Result): Representative<Awaited<Result>> {
     return new Representative (

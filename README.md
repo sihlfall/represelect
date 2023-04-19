@@ -99,12 +99,12 @@ Represelectors are designed to mitigate these issues.
 Represelectors, as well as representatives, are provided by the Represelect library:
 
 ```js
-import { createRepreselector, Representative } from 'represelect';
+import { createRepreselector } from 'represelect';
 ```
 
 The following examples assume that some more names have been imported:
 ```js
-import { Representative, INACTIVE, BUSY, SUCCESS, ERROR } from 'represelect';
+import { Representative, Disclosure } from 'represelect';
 import assert from 'assert';
 ```
 
@@ -142,18 +142,19 @@ assert.ok(sumRepresentative1 === sumRepresentative2);
 ```
 
 A representative can be _inspected_ by calling its `disclose` method. The method will return a _disclosure_ object,
-whose `status` field takes one of the values `INACTIVE`, `BUSY`, `SUCCESS` or `ERROR`:
+whose `status` field takes one of the values `INACTIVE`, `PENDING`, `SUCCESS` or `FAILURE`, which are all defined
+in `Disclosure.Status`:
 
 * `INACTIVE` indicates that the evaluation has not been initiated yet and, hence, the result is not yet available.
-* `BUSY` indicates that the evaluation has been started, yet not completed, and, hence, the result is not yet available.
+* `PENDING` indicates that the evaluation has been started, yet not completed, and, hence, the result is not yet available.
 * `SUCCESS` indicates that the evaluation has completed; the `value` field of the disclosure carries the function result.
-* `ERROR` indicates that the evaluation has resulted in an exception; the `error` field of the disclosure carries the exception.
+* `FAILURE` indicates that the evaluation has resulted in an exception; the `error` field of the disclosure carries the exception.
 
 The above call to `represelectSum`, for instance, will return a representative whose status 
 is `INACTIVE`:
 
 ```js
-assert.deepStrictEqual(sumRepresentative1.disclose(), { status: INACTIVE });
+assert.deepStrictEqual(sumRepresentative1.disclose(), { status: Disclosure.Status.INACTIVE });
 ```
 
 A representative is _lazy_ in the sense that neither its creation nor a call to `disclose` will trigger the evaluation of the
@@ -169,7 +170,7 @@ sumRepresentative1.value$.subscribe({ next(v) { console.log(v); } });
 ```
 
 You can subscribe to `value$` as often as you like. Note that the result value will be emitted _synchronously_ if it is
-readily available, i.e. if a call to `disclose` would result in a `BUSY` (or `ERROR`) status, which means that the execution
+readily available, i.e. if a call to `disclose` would result in a `SUCCESS` (or `FAILURE`) status, which means that the execution
 of the function has already completed at the time of subscription.
 
 ### Represelectors from synchronous functions
@@ -194,7 +195,7 @@ const lightSumRepresentative = represelectLightSum({
 });
 assert.deepStrictEqual(
   lightSumRepresentative.disclose(),
-  { status: INACTIVE }
+  { status: Disclosure.Status.INACTIVE }
 );
 
 // logging will always take place synchronously, since lightSum

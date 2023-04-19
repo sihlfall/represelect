@@ -1,8 +1,7 @@
 import assert from "assert";
 import { lift } from "../src/lift";
-import { SUCCESS, INACTIVE, BUSY } from "../src/representative";
 import { count, lastValueFrom, tap } from "rxjs";
-import { assertStatus } from "./assertDisclosure";
+import * as RepreselectAssert from "@sihlfall/represelect-assert";
 import { Representative } from "../src/representative";
 import { countingFamily } from "./callCount";
 
@@ -16,32 +15,32 @@ function runTestsDependencylessParameterless<V> (f: () => V, expected: Awaited<V
         const liftedf = lift(f);
         const representative1 = liftedf();
         const res1 = representative1.disclose();
-        assertStatus(res1, INACTIVE);
+        RepreselectAssert.Disclosure.inactive(res1);
         const observed = await lastValueFrom(representative1.value$);
         assert.deepStrictEqual(observed, expected);
         const res2 = representative1.disclose();
-        assertStatus(res2, SUCCESS);
+        RepreselectAssert.Disclosure.success(res2);
         assert.deepStrictEqual(res2.value, expected);
       }
     );
 
-    it("initially discloses an INACTIVE status", function () {
+    it("initially discloses an Disclosure.Status.INACTIVE status", function () {
       const representative = lift(f)();
       const res = representative.disclose();
-      assertStatus(res, INACTIVE);
+      RepreselectAssert.Disclosure.inactive(res);
     });
 
-    it("discloses an INACTIVE status on the second call to disclose()", function () {
+    it("discloses an Disclosure.Status.INACTIVE status on the second call to disclose()", function () {
       const representative = lift(f)();
       representative.disclose();
       const res = representative.disclose();
-      assertStatus(res, INACTIVE);
+      RepreselectAssert.Disclosure.inactive(res);
     });
 
     it("whose value$ emits one and only one value", async function () {
       const representative = lift(f)();
       const res = representative.disclose();
-      assertStatus(res, INACTIVE);
+      RepreselectAssert.Disclosure.inactive(res);
       const nEmissions = await lastValueFrom(representative.value$.pipe(count()));
       assert.deepStrictEqual(nEmissions, 1);
     });
@@ -49,7 +48,7 @@ function runTestsDependencylessParameterless<V> (f: () => V, expected: Awaited<V
     it("whose value$ emits the value to multiple subscribers", async function () {
       const representative = lift(f)();
       const res = representative.disclose();
-      assertStatus(res, INACTIVE);
+      RepreselectAssert.Disclosure.inactive(res);
       const finalRes1 = await lastValueFrom(representative.value$);
       const finalRes2 = await lastValueFrom(representative.value$);
       assert.deepStrictEqual(finalRes1, expected);
@@ -59,7 +58,7 @@ function runTestsDependencylessParameterless<V> (f: () => V, expected: Awaited<V
     it("whose value$, after completion, emits the value synchronously on subscription", async function () {
       const representative = lift(f)();
       const res1 = representative.disclose();
-      assertStatus(res1, INACTIVE);
+      RepreselectAssert.Disclosure.inactive(res1);
       await lastValueFrom(representative.value$);
       let v: V | null = null;
       representative.value$.pipe(tap(vv => v = vv)).subscribe();
@@ -73,30 +72,35 @@ describe("lift (applied to sync function without parameters),", function () {
   const f = () => FORTYTWO;
   runTestsDependencylessParameterless (f, FORTYTWO);
 
-  it("returns a representative whose value$ emits SUCCESS status after subscription", function () {
-    const representative = lift( () => 142 )();
-    const resBeforeSubscription = representative.disclose();
-    assertStatus(resBeforeSubscription, INACTIVE);
-    representative.value$.subscribe();
-    const resAfterSubscription = representative.disclose();
-    assertStatus(resAfterSubscription, SUCCESS);
+  describe("lifts the function to a function returning a representative", function () {
+    it("whose value$ emits Disclosure.Status.SUCCESS status after subscription", function () {
+      const representative = lift( () => 142 )();
+      const resBeforeSubscription = representative.disclose();
+      RepreselectAssert.Disclosure.inactive(resBeforeSubscription);
+      representative.value$.subscribe();
+      const resAfterSubscription = representative.disclose();
+      RepreselectAssert.Disclosure.success(resAfterSubscription);
+    });
   });
 });
 
 describe("lift (applied to async function without parameters),", function () {
   const FORTYTWO = 42;
   const f = async () => FORTYTWO;
-  runTestsDependencylessParameterless (f, FORTYTWO);
-
-  it("returns a representative disclosing a BUSY status on subscription", function () {
-    const representative = lift(f)();
-    const resBeforeSubscription = representative.disclose();
-    assertStatus(resBeforeSubscription, INACTIVE);
-    representative.value$.subscribe();
-    const resAfterSubscription = representative.disclose();
-    assertStatus(resAfterSubscription, BUSY);
+  runTestsDependencylessParameterless (
+    f,
+    FORTYTWO
+  );
+  describe("lifts the function to a function returning a representative that", function () {
+    it("discloses a PENDING status on subscription", function () {
+      const representative = lift(f)();
+      const resBeforeSubscription = representative.disclose();
+      RepreselectAssert.Disclosure.inactive(resBeforeSubscription);
+      representative.value$.subscribe();
+      const resAfterSubscription = representative.disclose();
+      RepreselectAssert.Disclosure.pending(resAfterSubscription);
+    });
   });
-
 });
 
 describe("lift (applied to sync function with one parameter),", function () {
@@ -132,7 +136,7 @@ describe("lift (applied to async function with one parameter),", function () {
   it("passes its argument to the async", async function () {
     const representative = lift(async (x: number) => x)(1112);
     const res = representative.disclose();
-    assertStatus(res, INACTIVE);
+    RepreselectAssert.Disclosure.inactive(res);
     const finalRes = await lastValueFrom(representative.value$);
     assert.deepStrictEqual(finalRes, 1112);
   });
@@ -170,10 +174,10 @@ describe("lift (applied to a failing sync function), returns a function that", f
     throw new Error(FAILED_INTENTIONALLY);
   }
   
-  it("returns a representative whose value$ eventually emits a FAILED status", async function () {
+  it("returns a representative whose value$ eventually emits a FAILURE status", async function () {
     const representative = lift(someFailingSyncFunction)();
     const res = representative.disclose();
-    assertStatus(res, INACTIVE);
+    RepreselectAssert.Disclosure.inactive(res);
     
     await assert.rejects(
       lastValueFrom(representative.value$),
@@ -191,10 +195,10 @@ describe("lift (applied to a failing async function), returns a function that", 
     });
   }
   
-  it("returns a representative whose value$ eventually emits a FAILED state", async function () {
+  it("returns a representative whose value$ eventually emits a FAILURE state", async function () {
     const representative = lift(someFailingAsyncFunction)();
     const res = representative.disclose();
-    assertStatus(res, INACTIVE);
+    RepreselectAssert.Disclosure.inactive(res);
     await assert.rejects(
       lastValueFrom(representative.value$),
       new Error(FAILED_INTENTIONALLY)
